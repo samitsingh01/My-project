@@ -1,0 +1,36 @@
+name: Deploy to GitHub Pages if Files Changed
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check for file changes
+        id: changes
+        run: |
+          git fetch origin gh-pages || echo "No gh-pages branch yet"
+          git diff --name-only origin/gh-pages..HEAD > changed_files.txt
+          COUNT=$(cat changed_files.txt | wc -l)
+          echo "Changed files count: $COUNT"
+          echo "changed=$COUNT" >> $GITHUB_ENV
+
+      - name: Cancel if no changes
+        if: env.changed == '0'
+        run: |
+          echo "No changes detected. Skipping deployment."
+          exit 0
+
+      - name: Deploy to GitHub Pages
+        if: env.changed != '0'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./  # change to ./dist or ./build if needed
